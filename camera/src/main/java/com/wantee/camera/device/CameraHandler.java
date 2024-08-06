@@ -1,8 +1,6 @@
-package com.wantee.camera.handler;
+package com.wantee.camera.device;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.view.Surface;
@@ -14,7 +12,11 @@ import com.wantee.camera.abs.ICamera;
 import com.wantee.common.Constant;
 import com.wantee.common.log.Log;
 
-import java.lang.ref.WeakReference;
+import org.json.JSONException;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 public class CameraHandler extends BaseHandler implements ICamera {
     private final String TAG = "CameraHandler";
@@ -47,11 +49,43 @@ public class CameraHandler extends BaseHandler implements ICamera {
     void handleMessage(@NonNull Message msg) {
         switch (msg.what) {
             case OPEN:
+                handleOpenCamera(msg);
                 break;
             case CLOSE:
+                handleCloseCamera();
                 break;
             case RELEASE:
+                stopHandler();
                 break;
+        }
+    }
+
+    private CameraDevice mDevice;
+    private void handleOpenCamera(Message message) {
+        Bundle data = message.getData();
+        EquipmentEnum equipmentEnum = EquipmentEnum.getEquipmentEnum(data.getInt("EquipmentEnum"));
+        String captureRequest = data.getString("Request");
+        Surface surface = data.getParcelable("Surface");
+        List<RequestParam.BaseParam<?>> params = new LinkedList<>();
+        int templateType = -1;
+        try {
+            templateType = RequestParam.parseParam(captureRequest, params);
+        } catch (JSONException | NoSuchFieldException | IllegalAccessException e) {
+            Log.e(TAG, android.util.Log.getStackTraceString(e));
+        }
+        if (mDevice == null) {
+            mDevice = new CameraDevice(equipmentEnum);
+        } else if(mDevice.getEquipmentEnum() != equipmentEnum) {
+            mDevice.close();
+            mDevice = new CameraDevice(equipmentEnum);
+        }
+        mDevice.open(templateType, surface, params);
+    }
+
+    private void handleCloseCamera() {
+        if (mDevice != null) {
+            mDevice.close();
+            mDevice = null;
         }
     }
 }

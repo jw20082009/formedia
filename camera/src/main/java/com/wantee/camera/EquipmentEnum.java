@@ -11,4 +11,14 @@ public enum EquipmentEnum {
     EquipmentEnum(boolean wideAngle) {
         mIsWideAngle = wideAngle;
     }
+
+    public static EquipmentEnum getEquipmentEnum(int index) {
+        EquipmentEnum[] enums = EquipmentEnum.values();
+        for(EquipmentEnum e: enums) {
+            if (e.ordinal() == index) {
+                return e;
+            }
+        }
+        return null;
+    }
 }

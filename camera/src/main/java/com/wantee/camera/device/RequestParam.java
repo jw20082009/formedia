@@ -330,20 +330,20 @@ public class RequestParam {
      *                               }
      *
      * @param configs 用于接收被解析完成的配置列表
-     * @return 如果配置参数中包含TEMPLATE_PREVIEW相关值，则会返回该解析对象(可被用于提前创建CaptureRequest.Builder)，如果不存在则返回null
+     * @return 如果配置参数中包含TEMPLATE_PREVIEW相关值，则会返回templateType(可被用于提前创建CaptureRequest.Builder)，如果不存在则返回null
      */
-    public static IntParam parseConfig(String configStr, List<BaseParam<?>> configs) throws JSONException, NoSuchFieldException, IllegalAccessException {
+    public static int parseParam(String configStr, List<BaseParam<?>> configs) throws JSONException, NoSuchFieldException, IllegalAccessException {
         if (TextUtils.isEmpty(configStr)) {
-            return null;
+            return -1;
         }
         JSONObject jsonObject = new JSONObject(configStr);
         Iterator<String> keyIterator = jsonObject.keys();
-        IntParam templateConfig = null;
+        int templateType = -1;
         while(keyIterator.hasNext()) {
             String key = keyIterator.next();
             if (TextUtils.equals(kTemplatePreview, key)) {
-                templateConfig = (IntParam) createConfig(Integer.class, key);
-                templateConfig.readValue(jsonObject, null);
+                IntParam templateParam = (IntParam) createConfig(Integer.class, key);
+                templateType = templateParam.readValue(jsonObject, null);
             } else {
                 if (configs == null) {
                     continue;
@@ -379,7 +379,7 @@ public class RequestParam {
                 }
             }
         }
-        return templateConfig;
+        return templateType;
     }
 
     public static String createTestConfig() throws JSONException {
@@ -405,8 +405,8 @@ public class RequestParam {
         object.put("STATISTICS_FACE_DETECT_MODE", CaptureRequest.STATISTICS_FACE_DETECT_MODE_OFF);
         object.put("CONTROL_VIDEO_STABILIZATION_MODE", CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
         object.put("LENS_OPTICAL_STABILIZATION_MODE", CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);
-        String testConfig = object.toString();
-        android.util.Log.e(TAG, "createTestConfig:" + testConfig);
-        return testConfig;
+        String testParam = object.toString();
+        android.util.Log.e(TAG, "createTestConfig:" + testParam);
+        return testParam;
     }
 }

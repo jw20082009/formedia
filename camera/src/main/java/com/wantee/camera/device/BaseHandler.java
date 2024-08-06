@@ -1,4 +1,4 @@
-package com.wantee.camera.handler;
+package com.wantee.camera.device;
 
 import android.os.Bundle;
 import android.os.Handler;
