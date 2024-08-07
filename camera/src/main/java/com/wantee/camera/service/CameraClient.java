@@ -45,7 +45,7 @@ public class CameraClient implements ICamera {
     @Override
     public int open(EquipmentEnum type, Surface surface, String captureRequest) throws RemoteException {
         if (mCameraService != null) {
-            return mCameraService.open(type.ordinal(), surface, captureRequest);
+            return mCameraSevice.open(type.ordinal(), surface, captureRequest);
         }
         return Constant.Error;
     }

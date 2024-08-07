@@ -1,4 +1,4 @@
-package com.wantee.camera.device;
+package com.wantee.camera.api2;
 
 import android.graphics.Rect;
 import android.hardware.camera2.CaptureRequest;

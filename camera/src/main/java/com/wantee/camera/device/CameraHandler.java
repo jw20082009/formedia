@@ -1,7 +1,6 @@
 package com.wantee.camera.device;
 
 import android.os.Bundle;
-import android.os.Looper;
 import android.os.Message;
 import android.view.Surface;
 
@@ -9,12 +8,12 @@ import androidx.annotation.NonNull;
 
 import com.wantee.camera.EquipmentEnum;
 import com.wantee.camera.abs.ICamera;
+import com.wantee.camera.api2.RequestParam;
 import com.wantee.common.Constant;
 import com.wantee.common.log.Log;
 
 import org.json.JSONException;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -66,20 +65,13 @@ public class CameraHandler extends BaseHandler implements ICamera {
         EquipmentEnum equipmentEnum = EquipmentEnum.getEquipmentEnum(data.getInt("EquipmentEnum"));
         String captureRequest = data.getString("Request");
         Surface surface = data.getParcelable("Surface");
-        List<RequestParam.BaseParam<?>> params = new LinkedList<>();
-        int templateType = -1;
-        try {
-            templateType = RequestParam.parseParam(captureRequest, params);
-        } catch (JSONException | NoSuchFieldException | IllegalAccessException e) {
-            Log.e(TAG, android.util.Log.getStackTraceString(e));
-        }
         if (mDevice == null) {
             mDevice = new CameraDevice(equipmentEnum);
         } else if(mDevice.getEquipmentEnum() != equipmentEnum) {
             mDevice.close();
             mDevice = new CameraDevice(equipmentEnum);
         }
-        mDevice.open(templateType, surface, params);
+        mDevice.open(surface, captureRequest);
     }
 
     private void handleCloseCamera() {

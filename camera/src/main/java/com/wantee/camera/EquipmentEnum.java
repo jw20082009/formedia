@@ -3,13 +3,17 @@ package com.wantee.camera;
 public enum EquipmentEnum {
     Front(false),
     Rear(false),
-    Front_WideAngle(true),
-    Rear_WideAngle(true);
+    Front_Camera2(true),
+    Rear_Camera2(true);
 
-    boolean mIsWideAngle = false;
+    boolean mIsCamera2 = false;
 
-    EquipmentEnum(boolean wideAngle) {
-        mIsWideAngle = wideAngle;
+    EquipmentEnum(boolean camera2) {
+        mIsCamera2 = camera2;
+    }
+
+    public boolean isCamera2() {
+        return mIsCamera2;
     }
 
     public static EquipmentEnum getEquipmentEnum(int index) {

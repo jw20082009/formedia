@@ -6,6 +6,6 @@ import android.view.Surface;
 import com.wantee.camera.EquipmentEnum;
 
 public interface ICamera {
-    int open(EquipmentEnum type, Surface surface, String captureRequest) throws RemoteException;
+    int open(EquipmentEnum type, Surface surface, String captureRequest);
     int close() throws RemoteException;
 }

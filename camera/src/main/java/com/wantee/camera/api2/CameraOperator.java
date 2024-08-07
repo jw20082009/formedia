@@ -1,4 +1,4 @@
-package com.wantee.camera.device;
+package com.wantee.camera.api2;
 
 import android.Manifest;
 import android.content.Context;
@@ -8,18 +8,29 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.os.Build;
+import android.os.RemoteException;
+import android.view.Surface;
 
 import com.wantee.camera.CameraContext;
+import com.wantee.camera.EquipmentEnum;
+import com.wantee.camera.abs.ICamera;
+import com.wantee.camera.device.Status;
+import com.wantee.common.Constant;
 import com.wantee.common.log.Log;
 
-public class Camera2Operator {
+import org.json.JSONException;
+
+import java.util.LinkedList;
+import java.util.List;
+
+public class CameraOperator implements ICamera {
     private final String TAG = "CameraOperator";
     private CameraCharacteristics mDevCharacteristics;
     private CameraManager mManager;
     private String mCameraIndex;
     private Status mStatus;
 
-    public Camera2Operator(String cameraIndex) {
+    public CameraOperator(String cameraIndex) {
         mCameraIndex = cameraIndex;
     }
 
@@ -28,12 +39,6 @@ public class Camera2Operator {
             mDevCharacteristics = getCameraManager(CameraContext.sContext).getCameraCharacteristics(mCameraIndex);
         }
         return mDevCharacteristics;
-    }
-
-    public void open(String cameraIndex) {
-        mStatus = Status.Opening;
-        mCameraIndex = cameraIndex;
-
     }
 
     private CameraManager getCameraManager(Context context) {
@@ -70,5 +75,23 @@ public class Camera2Operator {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public int open(EquipmentEnum type, Surface surface, String captureRequest) {
+        mStatus = Status.Opening;
+        List<RequestParam.BaseParam<?>> params = new LinkedList<>();
+        int templateType = -1;
+        try {
+            templateType = RequestParam.parseParam(captureRequest, params);
+        } catch (JSONException | NoSuchFieldException | IllegalAccessException e) {
+            Log.e(TAG, android.util.Log.getStackTraceString(e));
+        }
+        return Constant.True;
+    }
+
+    @Override
+    public int close() {
+        return 0;
     }
 }
