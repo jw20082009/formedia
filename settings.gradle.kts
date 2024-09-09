@@ -17,3 +17,4 @@ rootProject.name = "formedia"
 include(":app")
 include(":camera")
 include(":common")
+include(":render")

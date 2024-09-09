@@ -288,7 +288,7 @@ public class RequestParam {
     private static final String TAG = "HECameraConfig";
     public static final String kTemplatePreview = "TEMPLATE_PREVIEW";
     public static final String kStreamUseCase = "STREAM_USE_CASE";
-    public static BaseParam<?> createConfig(Class<?> clazz, String key) {
+    public static BaseParam<?> createParam(Class<?> clazz, String key) {
         if (clazz.equals(Integer.class)) {
             return new IntParam(key);
         } else if (clazz.equals(Boolean.class)) {
@@ -342,7 +342,7 @@ public class RequestParam {
         while(keyIterator.hasNext()) {
             String key = keyIterator.next();
             if (TextUtils.equals(kTemplatePreview, key)) {
-                IntParam templateParam = (IntParam) createConfig(Integer.class, key);
+                IntParam templateParam = (IntParam) createParam(Integer.class, key);
                 templateType = templateParam.readValue(jsonObject, null);
             } else {
                 if (configs == null) {
@@ -369,7 +369,7 @@ public class RequestParam {
                             fieldClass = (Class<?>) fieldArgTypes[0];
                         }
                         if (fieldClass != null) {
-                            BaseParam<?> config = createConfig(fieldClass, key);
+                            BaseParam<?> config = createParam(fieldClass, key);
                             if (config != null) {
                                 config.readValue(jsonObject, obj);
                                 configs.add(config);
