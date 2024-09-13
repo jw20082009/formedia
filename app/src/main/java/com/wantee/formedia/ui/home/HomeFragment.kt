@@ -64,6 +64,7 @@ class HomeFragment : Fragment() {
                     }
 
                     override fun createDestination(previewWidth: Int, previewHeight: Int): Surface {
+                        Log.e("HomeFragment", "createDestination:$previewWidth * $previewHeight")
                         return player.tryObtainSurface(previewWidth, previewHeight)
                     }
                 }
@@ -93,7 +94,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun openCamera() {
-        CameraContext.Instance.open(EquipmentType.Front_Camera2, 720, 1280)
+        CameraContext.Instance.open(EquipmentType.Front_Camera2, 700, 1280)
     }
 
     private fun checkPermission(): Boolean {

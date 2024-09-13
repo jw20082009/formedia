@@ -2,13 +2,19 @@ package com.wantee.camera.device;
 
 import android.util.Size;
 
+import com.wantee.common.log.Log;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * 以采集分辨率为画布，剧中裁剪出期望分辨率的大小，主要参考裁剪率和缩放率来查找最优分辨率
+ */
 public class SizeChooser {
+    private final String TAG = "SizeChooser";
     float cropWeight = 1.0f; // 裁剪率权重，裁剪越多代表比例相差越大
     float scaleWeight = 1.0f; // 缩放率权重，缩放越多代表面积相差越大
 
@@ -34,7 +40,7 @@ public class SizeChooser {
             cropRatio = (captureSize.getHeight() - scaledHeight) / captureSize.getHeight();
             scaleRatio = scaledHeight / preferSize.getHeight();
         }
-        return (1.0f - cropRatio) * cropWeight + scaleRatio * scaleWeight;
+        return cropRatio * cropWeight + (scaleRatio - 1) * scaleWeight;
     }
 
     public Size onSelectPreviewSize(int preferWidth, int preferHeight, Size[] supportedPreviewSizes) {
