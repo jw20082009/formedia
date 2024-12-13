@@ -8,7 +8,7 @@ import com.wantee.camera.CameraContext;
 
 public class CameraUtils {
 
-    public static int getDisplayRotate() {
+    public static int getDisplayDegree() {
         Context context = CameraContext.Instance.getContext();
         int m_Orientation = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay()
@@ -30,4 +30,5 @@ public class CameraUtils {
         }
         return degrees;
     }
+
 }

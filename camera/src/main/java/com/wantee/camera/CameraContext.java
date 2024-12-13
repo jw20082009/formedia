@@ -1,109 +1,50 @@
 package com.wantee.camera;
 
 import android.content.Context;
-import android.graphics.SurfaceTexture;
-import android.view.Surface;
 
-import com.wantee.camera.device.Runtime;
+import com.wantee.camera.preview.CameraListener;
 import com.wantee.camera.request.CameraHandler;
-import com.wantee.camera.service.CameraClient;
 import com.wantee.common.log.Log;
-
-import java.util.HashMap;
 
 public enum CameraContext {
     Instance;
+
     private static final String TAG = "CameraContext";
     private Context mContext;
-    private final HashMap<Runtime.RuntimeType, Integer> mRuntimeSwitchCode = new HashMap<>();
     private CameraOperator mOperator;
 
-    public void setContext(Context context) {
+    public synchronized void setContext(Context context) {
         mContext = context;
     }
 
-    public Context getContext() { return mContext; }
+    public synchronized Context getContext() {
+        return mContext;
+    }
 
-    private CameraOperator createOperator(EquipmentType type) {
-        Log.e(TAG, "createOperator:" + type.name());
-        if (type.runtimeType() == Runtime.RuntimeType.Service) {
-            return new CameraClient();
+    public synchronized int open(EquipmentType type, int preferWidth, int preferHeight, CameraListener<?> listener) {
+        if (listener == null || !type.isSupportedDestination(listener.getDestinationClass()) || preferWidth <= 0 || preferHeight <= 0) {
+            Log.e(TAG, "open camera failed, invalid arguments, EquipmentType:" + type +
+                    ",preferSize:" + preferWidth + "*" + preferHeight + ",listener:" + listener +
+                    ",listenerDestination:" + (listener == null? "-1": listener.getDestinationClass()));
+            throw new RuntimeException("CameraContext.open invalidArguments");
         }
-        return new CameraHandler();
-    }
-
-    public int open(EquipmentType type, int preferWidth, int preferHeight) {
-        synchronized (mRuntimeSwitchCode) {
-            if (mOperator == null) {
-                CameraOperator operator = createOperator(type);
-                int requestCode = operator.open(type, preferWidth, preferHeight, "", mListenerWrapper);
-                if (requestCode >= 0) {
-                    mOperator = operator;
-                }
-                return requestCode;
-            }
-            if (mOperator.runtimeType() != type.runtimeType()) {
-                if (mRuntimeSwitchCode.containsKey(type.runtimeType())) {
-                    Log.e(TAG, "open["+ type.name() +"] when is closing old");
-                    // 旧的runtimeType正在关闭中
-                    return -1;
-                } else if (mOperator.isOpened()) {
-                    // 切换RuntimeType需要先关闭旧的
-                    int requestCode = mOperator.close();
-                    mRuntimeSwitchCode.put(mOperator.runtimeType(), requestCode);
-                    Log.e(TAG, "switch runtime["+type.runtimeType().name()+"] need close old["+ mOperator.runtimeType().name()+"] first");
-                    return -1;
-                }
-                mOperator = createOperator(type);
-            }
-            return mOperator.open(type, preferWidth, preferHeight, "", mListenerWrapper);
+        if (mOperator == null) {
+            mOperator = new CameraHandler();
         }
+        return mOperator.open(type, preferWidth, preferHeight, "", listener);
     }
 
-    public void setSurfaceListener(PreviewListener<Surface> listener) {
-        mListenerWrapper.setSurfaceListener(listener);
-    }
-
-    public void setSurfaceTextureListener(PreviewListener<SurfaceTexture> listener) {
-        mListenerWrapper.setSurfaceTextureListener(listener);
-    }
-
-    public int close() {
-        synchronized (mRuntimeSwitchCode) {
-            if (mOperator != null) {
-                return mOperator.close();
-            }
+    public synchronized int setListener(CameraListener<?> listener) {
+        if (mOperator == null) {
             return -1;
         }
+        return mOperator.setListener(listener);
     }
 
-
-    private final ListenerWrapper mListenerWrapper = new ListenerWrapper() {
-
-        private void onRuntimeSwitchResult(int requestCode) {
-            synchronized (mRuntimeSwitchCode) {
-                if (mOperator == null) {
-                    return;
-                }
-                CameraOperator.RuntimeType type = mOperator.runtimeType();
-                Integer codeObj = mRuntimeSwitchCode.get(type);
-                if (codeObj != null && codeObj == requestCode) {
-                    mRuntimeSwitchCode.remove(type);
-                }
-            }
+    public synchronized int close() {
+        if (mOperator != null) {
+            return mOperator.close();
         }
-
-        @Override
-        public void onClosed(int requestCode) {
-            super.onClosed(requestCode);
-            onRuntimeSwitchResult(requestCode);
-        }
-
-        @Override
-        public void onError(int requestCode, String errorMessage) {
-            super.onError(requestCode, errorMessage);
-            onRuntimeSwitchResult(requestCode);
-            Log.e(TAG, errorMessage);
-        }
-    };
+        return -1;
+    }
 }

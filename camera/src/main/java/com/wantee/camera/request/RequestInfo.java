@@ -1,10 +1,11 @@
 package com.wantee.camera.request;
 
+import android.view.Surface;
+
 import androidx.annotation.NonNull;
 
+import com.wantee.camera.preview.CameraListener;
 import com.wantee.camera.EquipmentType;
-import com.wantee.camera.PreviewListener;
-import com.wantee.camera.Previewer;
 import com.wantee.common.Constant;
 import com.wantee.common.log.Log;
 
@@ -13,10 +14,14 @@ public class RequestInfo extends RequestQueue.Data {
         Unknown, Open, Close, Apply, Query
     }
 
-    public PreviewListener<?> listener;
+    public CameraListener<?> listener;
     public long executeTime;
-    public RequestInfo(RequestQueue.CheckType type, int dataTypeId, PreviewListener<?> listener) {
+    public RequestInfo(RequestQueue.CheckType type, int dataTypeId, CameraListener<?> listener) {
         super(type, dataTypeId);
+        this.listener = listener;
+    }
+
+    public void setListener(CameraListener<?> listener) {
         this.listener = listener;
     }
 
@@ -26,8 +31,8 @@ public class RequestInfo extends RequestQueue.Data {
         return Constant.False;
     }
 
-    public void notifyWithoutHandle() {
-        notifyError("WithoutHandle");
+    public void notifyWithoutHandle(String message) {
+        notifyError("WithoutHandle:" + type().name() + ", " + message);
     }
 
     public void notifyError(String message) {
@@ -45,7 +50,7 @@ public class RequestInfo extends RequestQueue.Data {
 
 class CloseInfo extends RequestInfo {
 
-    public CloseInfo(PreviewListener<?> listener) {
+    public CloseInfo(CameraListener<?> listener) {
         super(RequestQueue.CheckType.Optional, Type.Close.ordinal(), listener);
     }
 
@@ -72,7 +77,7 @@ class OpenInfo extends RequestInfo {
     public String captureRequest;
     public EquipmentType deviceType;
 
-    public OpenInfo(PreviewListener<?> listener, EquipmentType type, int width, int height, String captureRequest) {
+    public OpenInfo(CameraListener<?> listener, EquipmentType type, int width, int height, String captureRequest) {
         super(RequestQueue.CheckType.Optional, Type.Open.ordinal(), listener);
         this.deviceType = type;
         this.preferWidth = width;
@@ -88,16 +93,30 @@ class OpenInfo extends RequestInfo {
         return camera.openDevice(this);
     }
 
-    public Previewer<?> onStartPreview() {
+    public Class<?> getDestinationType() {
         if (listener != null) {
-            return listener.onStartPreview(requestId, deviceType);
+            return listener.getDestinationClass();
         }
         return null;
     }
 
-    public void onOpened(int displayRotate) {
+    public Surface createDestinationSurface(int width, int height) {
         if (listener != null) {
-            listener.onOpened(requestId, displayRotate);
+            return listener.onCreateSurface(width, height);
+        }
+        return null;
+    }
+
+    public Object createDestination(int width, int height) {
+        if (listener != null) {
+            return listener.onCreateDestination(width, height);
+        }
+        return null;
+    }
+
+    public void onOpened(int cameraDegree, int displayRotate, boolean isFacingFront) {
+        if (listener != null) {
+            listener.onOpened(requestId, cameraDegree, displayRotate, isFacingFront);
         }
     }
 }

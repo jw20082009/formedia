@@ -1,26 +1,31 @@
 package com.wantee.camera;
 
 import android.graphics.SurfaceTexture;
+import android.media.ImageReader;
 import android.view.Surface;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public enum EquipmentType {
-    Front(CameraOperator.RuntimeType.Handler, false, true, SurfaceTexture.class),
-    Rear(CameraOperator.RuntimeType.Handler, false, false, SurfaceTexture.class),
-    Front_Camera2(CameraOperator.RuntimeType.Handler, true, true, Surface.class),
-    Rear_Camera2(CameraOperator.RuntimeType.Handler, true, false, Surface.class),
-    Front_Camera2Service(CameraOperator.RuntimeType.Service, true, true, Surface.class),
-    Rear_Camera2Service(CameraOperator.RuntimeType.Service, true, false, Surface.class);
+    Front(CameraOperator.RuntimeType.Handler, false, true, SurfaceTexture.class, byte[].class),
+    Rear(CameraOperator.RuntimeType.Handler, false, false, SurfaceTexture.class, byte[].class),
+    Front_Camera2(CameraOperator.RuntimeType.Handler, true, true, SurfaceTexture.class, ImageReader.class),
+    Rear_Camera2(CameraOperator.RuntimeType.Handler, true, false, SurfaceTexture.class, ImageReader.class);
 
     final CameraOperator.RuntimeType mType;
     final boolean mIsCamera2;
     final boolean mIsFront;
-    final Class<?> mPreviewClazz;
+    final List<Class<?>> mSupportedDestination = new ArrayList<>();
 
-    EquipmentType(CameraOperator.RuntimeType type, boolean isCamera2, boolean isFront, Class<?> previewClazz) {
+    EquipmentType(CameraOperator.RuntimeType type, boolean isCamera2, boolean isFront, Class<?>... destinationClass) {
         mType = type;
         mIsCamera2 = isCamera2;
         mIsFront = isFront;
-        mPreviewClazz = previewClazz;
+        if (destinationClass != null) {
+            mSupportedDestination.addAll(Arrays.asList(destinationClass));
+        }
     }
 
     public boolean isCamera2() {
@@ -28,7 +33,10 @@ public enum EquipmentType {
     }
 
     public boolean isFront() { return mIsFront; }
-    public Class<?> previewClazz() { return mPreviewClazz; }
+
+    public boolean isSupportedDestination(Class<?> clazz) {
+        return mSupportedDestination.contains(clazz);
+    }
 
     public CameraOperator.RuntimeType runtimeType() { return mType; }
     public static EquipmentType getEquipmentEnum(int index) {

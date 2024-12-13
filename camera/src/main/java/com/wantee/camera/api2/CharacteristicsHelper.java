@@ -1,6 +1,5 @@
 package com.wantee.camera.api2;
 
-import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -8,14 +7,11 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.ImageReader;
 import android.os.Build;
 import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 
-import com.wantee.camera.PreviewType;
-import com.wantee.camera.Previewer;
 import com.wantee.camera.utils.CameraUtils;
 import com.wantee.common.Constant;
 import com.wantee.common.log.Log;
@@ -44,16 +40,12 @@ public class CharacteristicsHelper {
         return mDevCharacteristics.get(key);
     }
 
-    public Size[] getSupportedPreviewSize(Previewer<?> previewer) {
+    public Size[] getSupportedPreviewSize(Class<?> destinationClass) {
         StreamConfigurationMap map = getCameraCharacteristics(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         if (map == null) {
             return new Size[] {};
         }
-        if (previewer.type() == PreviewType.SurfaceTexture) {
-            return map.getOutputSizes(SurfaceTexture.class);
-        } else {
-            return map.getOutputSizes(ImageReader.class);
-        }
+        return map.getOutputSizes(destinationClass);
     }
 
     private void setLocalCaptureConfig() {
@@ -93,7 +85,18 @@ public class CharacteristicsHelper {
     }
 
     public int getWindowDegree() {
-        return CameraUtils.getDisplayRotate();
+        return CameraUtils.getDisplayDegree();
+    }
+
+    public int getCameraDegree() {
+        return getCameraCharacteristics(CameraCharacteristics.SENSOR_ORIENTATION);
+    }
+
+    public boolean isFacingFront() {
+        try{
+            return getCameraCharacteristics(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT;
+        } catch (Exception e) {}
+        return false;
     }
 
     private <T> int setRequest(String keyStr, CaptureRequest.Key<T> key, T value) {

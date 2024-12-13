@@ -1,18 +1,17 @@
 package com.wantee.formedia
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
-import androidx.navigation.ui.setupWithNavController
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.wantee.camera.CameraContext
 import com.wantee.common.log.Log
 import com.wantee.common.log.LogEnum
-import com.wantee.formedia.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-
-    private lateinit var binding: ActivityMainBinding
+    private val TAG = "MainActivity"
+    private lateinit var mSelectorView: LinearLayout
+    val REQUEST_CODE_CHOOSE: Int = 23
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,15 +27,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_main)
+        mSelectorView = findViewById(R.id.ll_selector)
+        mSelectorView.setOnClickListener({
 
-        val navView: BottomNavigationView = binding.navView
-
-        val navController = findNavController(R.id.nav_host_fragment_activity_main2)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        navView.setupWithNavController(navController)
+        })
     }
 
     override fun onDestroy() {

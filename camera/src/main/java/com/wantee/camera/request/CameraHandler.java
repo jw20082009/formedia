@@ -6,10 +6,11 @@ import android.os.Message;
 
 import androidx.annotation.NonNull;
 
+import com.wantee.camera.preview.CameraListener;
 import com.wantee.camera.EquipmentType;
 import com.wantee.camera.CameraOperator;
-import com.wantee.camera.PreviewListener;
 import com.wantee.camera.api2.Camera2Impl;
+import com.wantee.common.Constant;
 import com.wantee.common.handler.BaseHandler;
 import com.wantee.common.log.Log;
 
@@ -19,17 +20,16 @@ public class CameraHandler extends BaseHandler implements CameraOperator, BaseHa
     private final String TAG = "CameraHandler";
     private final RequestQueue<RequestInfo> mRequestQueue = new RequestQueue<>(new RequestQueue.IQueueListener<RequestInfo>() {
         @Override
-        public void onAutoRemove(RequestInfo data) {
-            Log.e(TAG, "onAutoRemove:" + data);
-            data.notifyWithoutHandle();
+        public void onAutoRemove(RequestInfo onRemoveData, RequestInfo fromData) {
+            onRemoveData.notifyWithoutHandle("onAutoRemove from " + (fromData == null? "null": fromData.type().name()));
         }
 
         @Override
-        public void onDrop(RequestInfo data) {
-            Log.e(TAG, "onDrop:" + data);
-            data.notifyWithoutHandle();
+        public void onDrop(RequestInfo dropData, RequestInfo fromData) {
+            dropData.notifyWithoutHandle("onDrop from " + (fromData == null? "null": fromData.type().name()));
         }
     });
+
     private final Object mLock = new Object();
     private BaseCamera mCamera;
     private OpenInfo mOpenInfo;
@@ -37,8 +37,8 @@ public class CameraHandler extends BaseHandler implements CameraOperator, BaseHa
     public CameraHandler() {
     }
 
-    public int open(EquipmentType type, int width, int height, String captureRequest, PreviewListener<?> listener) {
-        Log.e(TAG, "open, type:" + type + ", preferSize:" + width + "*" + height + ", captureRequest:" + captureRequest + ", listener:" + listener);
+    public int open(EquipmentType type, int width, int height, String captureRequest, CameraListener<?> listener) {
+        Log.e(TAG, "[" + this.hashCode()+"] open, type:" + type + ", preferSize:" + width + "*" + height + ", captureRequest:" + captureRequest + ", listener:" + listener);
         synchronized (mLock) {
             startHandler();
             sendEmptyMessageAndRemove(DRAIN, DRAIN, RELEASE);
@@ -46,14 +46,30 @@ public class CameraHandler extends BaseHandler implements CameraOperator, BaseHa
         }
     }
 
+    @Override
+    public int setListener(CameraListener<?> listener) {
+        synchronized (mLock) {
+            if (mOpenInfo != null) {
+                mOpenInfo.setListener(listener);
+                return Constant.True;
+            }
+            return Constant.False;
+        }
+    }
+
     public int close() {
-        Log.e(TAG, "close");
+        Log.e(TAG, "[" + this.hashCode()+"] close");
         synchronized (mLock) {
             sendEmptyMessageAndRemove(DRAIN, DRAIN, RELEASE);
             sendEmptyMessageDelayed(RELEASE, 10_000);
-            CloseInfo info = new CloseInfo(mOpenInfo.listener);
-            info.setOptionalChecker((RequestQueue.IOptionalChecker<CloseInfo>) data -> mOpenInfo != null);
-            return mRequestQueue.offer(info);
+            CloseInfo info = new CloseInfo(null);
+            return mRequestQueue.offer(info, data -> {
+                if (mOpenInfo != null || (data != null && data.type() == RequestInfo.Type.Open)) {
+                    info.setListener(mOpenInfo != null? mOpenInfo.listener : data.listener);
+                    return true;
+                }
+                return false;
+            });
         }
     }
 
@@ -100,6 +116,7 @@ public class CameraHandler extends BaseHandler implements CameraOperator, BaseHa
                     if (info.type() == RequestInfo.Type.Open && mCamera == null) {
                         mCamera = new Camera2Impl();
                         mOpenInfo = (OpenInfo) info;
+                        Log.e(TAG, "mOpenInfo:" + mOpenInfo);
                         camera = mCamera;
                     } else if (info.type() == RequestInfo.Type.Close && mCamera != null) {
                         mCamera = null;

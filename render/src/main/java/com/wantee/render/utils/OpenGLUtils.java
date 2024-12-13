@@ -1,16 +1,19 @@
 package com.wantee.render.utils;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import com.wantee.render.Rotation;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -117,6 +120,49 @@ public class OpenGLUtils {
             default:
                 return createFloatBuffer(TEXTURE_NO_ROTATION);
         }
+    }
+
+    public static FloatBuffer createRotationTextureBuffer(Rotation rotation, boolean flipHorizontal, boolean flipVertical) {
+        float[] rotatedTex;
+        switch (rotation) {
+            case Rotation90:
+                rotatedTex = TEXTURE_ROTATED_90;
+                break;
+            case Rotation180:
+                rotatedTex = TEXTURE_ROTATED_180;
+                break;
+            case Rotation270:
+                rotatedTex = TEXTURE_ROTATED_270;
+                break;
+            case Rotation0:
+            default:
+                rotatedTex = TEXTURE_NO_ROTATION;
+                break;
+        }
+        if (flipHorizontal) {
+            rotatedTex = new float[]{
+                    flip(rotatedTex[0]), rotatedTex[1],
+                    flip(rotatedTex[2]), rotatedTex[3],
+                    flip(rotatedTex[4]), rotatedTex[5],
+                    flip(rotatedTex[6]), rotatedTex[7],
+            };
+        }
+        if (flipVertical) {
+            rotatedTex = new float[]{
+                    rotatedTex[0], flip(rotatedTex[1]),
+                    rotatedTex[2], flip(rotatedTex[3]),
+                    rotatedTex[4], flip(rotatedTex[5]),
+                    rotatedTex[6], flip(rotatedTex[7]),
+            };
+        }
+        return createFloatBuffer(rotatedTex);
+    }
+
+    private static float flip(final float i) {
+        if (i == 0.0f) {
+            return 1.0f;
+        }
+        return 0.0f;
     }
 
     public static int getVertexCount() {
@@ -248,5 +294,51 @@ public class OpenGLUtils {
         while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
             throw new RuntimeException(op + ": glError 0x" + Integer.toHexString(error));
         }
+    }
+
+    public static void saveByteDirect(byte[] frame, String filename) {
+        BufferedOutputStream bos = null;
+        try {
+            bos = new BufferedOutputStream(new FileOutputStream(filename));
+            bos.write(frame);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (bos != null) {
+                try {
+                    bos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void saveRgb2Bitmap(Buffer buf, String filename, int width, int height) {
+        BufferedOutputStream bos = null;
+        try {
+            bos = new BufferedOutputStream(new FileOutputStream(filename));
+            Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            bmp.copyPixelsFromBuffer(buf);
+            bmp.compress(Bitmap.CompressFormat.PNG, 90, bos);
+            bmp.recycle();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (bos != null) {
+                try {
+                    bos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void readToPng(int width, int height, String filename) {
+        ByteBuffer rgbaBuf = ByteBuffer.allocateDirect(width * height * 4);
+        rgbaBuf.position(0);
+        GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, rgbaBuf);
+        saveRgb2Bitmap(rgbaBuf, filename, width, height);
     }
 }

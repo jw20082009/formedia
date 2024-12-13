@@ -12,6 +12,7 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.os.Build;
+import android.os.SystemClock;
 import android.util.Size;
 import android.view.Surface;
 
@@ -21,7 +22,6 @@ import com.wantee.camera.CameraContext;
 import com.wantee.camera.request.BaseCamera;
 import com.wantee.camera.device.CameraChooser;
 import com.wantee.camera.device.SizeChooser;
-import com.wantee.camera.Previewer;
 import com.wantee.camera.device.Status;
 import com.wantee.common.Constant;
 import com.wantee.common.log.Log;
@@ -78,7 +78,7 @@ public class Camera2Impl extends BaseCamera {
             return true;
         }
         Log.e(TAG, "Device support for api level is LEGACY, level" + level);
-        throw new RuntimeException("HARDWARE_LEVEL:" + level);
+        throw new RuntimeException("unSupported HARDWARE_LEVEL:" + level);
     }
 
     private boolean isGetCameraPermission() {
@@ -97,12 +97,12 @@ public class Camera2Impl extends BaseCamera {
             Log.e(TAG, "onOpened deviceId:" + cameraDevice.getId());
             mDevice = cameraDevice;
             SizeChooser chooser = getSizeChooser();
-            Previewer<?> previewer = onStartPreview();
-            Size previewSize = chooser.onSelectPreviewSize(mPreferWidth, mPreferHeight, mHelper.getSupportedPreviewSize(previewer));
-            Object destination = previewer.createDestination(previewSize.getWidth(), previewSize.getHeight());
+            Size previewSize = chooser.onSelectPreviewSize(mPreferWidth, mPreferHeight, mHelper.getSupportedPreviewSize(getDestinationClass()));
+            Surface destination = createDestinationSurface(previewSize.getWidth(), previewSize.getHeight());
             try {
-                if (destination instanceof Surface) {
-                    mHelper.startCaptureSession(mCaptureParam, cameraDevice, (Surface) destination, sessionStateCallback);
+                if (destination != null) {
+                    Log.e(TAG, "startCaptureSession:" + destination);
+                    mHelper.startCaptureSession(mCaptureParam, cameraDevice, destination, sessionStateCallback);
                 } else {
                     Log.e(TAG, "preview destination error");
                 }
@@ -121,6 +121,13 @@ public class Camera2Impl extends BaseCamera {
         public void onError(@NonNull CameraDevice cameraDevice, int i) {
             onCameraError("onError SystemError:" + i);
         }
+
+        @Override
+        public void onClosed(@NonNull CameraDevice camera) {
+            super.onClosed(camera);
+            Log.e(TAG, "StateCallback onClosed" + camera);
+            Camera2Impl.this.onDeviceClosed();
+        }
     };
 
     CameraCaptureSession.StateCallback sessionStateCallback = new CameraCaptureSession.StateCallback() {
@@ -130,7 +137,7 @@ public class Camera2Impl extends BaseCamera {
                 Log.e(TAG, "onConfigured:" + session);
                 mCaptureSession = session;
                 repeatRequest();
-                Camera2Impl.this.onDeviceOpened(mHelper.getWindowDegree());
+                Camera2Impl.this.onDeviceOpened(mHelper.getCameraDegree(), mHelper.getWindowDegree(), mHelper.isFacingFront());
             } catch (CameraAccessException e) {
                 e.printStackTrace();
             }
@@ -145,21 +152,20 @@ public class Camera2Impl extends BaseCamera {
         @Override
         public void onClosed(@NonNull CameraCaptureSession session) {
             super.onClosed(session);
-            Log.e(TAG, "onClosed:" + session);
+            Log.e(TAG, "CameraCaptureSession.StateCallback onClosed:" + session);
             mBugFix.clear();
-            Camera2Impl.this.onDeviceClosed();
         }
     };
 
     @Override
     protected int openDevice(String deviceId, int width, int height, String captureRequest) throws CameraAccessException {
         Log.e(TAG, "openDevice:" + deviceId +"[" + width + "*" + height+"]," + captureRequest);
-        setStatus(Status.Opening);
         mDeviceId = deviceId;
         mPreferWidth = width;
         mPreferHeight = height;
         mCaptureParam = captureRequest;
         if (isHardwareSupported() && isGetCameraPermission()) {
+            setStatus(Status.Opening);
             getCameraManager().openCamera(deviceId, mCallback, null);
             return Constant.True;
         }
@@ -168,6 +174,13 @@ public class Camera2Impl extends BaseCamera {
 
     @Override
     protected int closeDevice() {
+        if (mCaptureSession != null) {
+            try {
+                mCaptureSession.stopRepeating();
+            }catch (Exception ignored) {}
+            mCaptureSession.close();
+            mCaptureSession = null;
+        }
         if (mDevice != null) {
             Log.e(TAG, "closeDevice:" + mDeviceId);
             setStatus(Status.Closing);

@@ -3,7 +3,6 @@ package com.wantee.camera.request;
 import android.hardware.camera2.CameraAccessException;
 import android.view.Surface;
 
-import com.wantee.camera.Previewer;
 import com.wantee.camera.device.CameraChooser;
 import com.wantee.camera.device.Status;
 import com.wantee.common.Constant;
@@ -23,14 +22,13 @@ public abstract class BaseCamera {
             return Constant.Error;
         }
         if (mOpenInfo != null && mOpenInfo.equals(info) && isOpened()) {
-            info.notifyWithoutHandle();
-            Log.e(TAG, "open[" + info.deviceType.name() +"] twice is dropped");
+            String message = info.deviceType.name() + " already opened";
+            info.notifyWithoutHandle(message);
             return Constant.False;
         } else if (mOpenInfo != null) {
             Log.e(TAG, "close:" + mOpenInfo.deviceType.name() +" before open:" + info.deviceType.name());
             closeDevice();
         }
-        setStatus(Status.Opening);
         mOpenInfo = info;
         CameraChooser cameraChooser = createCameraChooser();
         String deviceId = cameraChooser.onSelectIndex(info.deviceType);
@@ -48,25 +46,32 @@ public abstract class BaseCamera {
             return Constant.Error;
         }
         if (isClosed()) {
-            info.notifyWithoutHandle();
+            info.notifyWithoutHandle("[BaseCamera] already closed");
             return Constant.False;
         }
-        setStatus(Status.Closing);
         mCloseInfo = info;
         return closeDevice();
     }
 
-    protected Previewer<?> onStartPreview() {
+    protected Class<?> getDestinationClass() {
         if (mOpenInfo != null) {
-            return mOpenInfo.onStartPreview();
+            return mOpenInfo.getDestinationType();
         }
         Log.e(TAG, "notifyOpen while mOpenInfo == null");
         return null;
     }
 
-    protected void onDeviceOpened(int displayRotate) {
+    protected Surface createDestinationSurface(int width, int height) {
         if (mOpenInfo != null) {
-            mOpenInfo.onOpened(displayRotate);
+            return mOpenInfo.createDestinationSurface(width, height);
+        }
+        Log.e(TAG, "notifyOpen while mOpenInfo == null");
+        return null;
+    }
+
+    protected void onDeviceOpened(int cameraDegree, int displayRotate, boolean isFacingFront) {
+        if (mOpenInfo != null) {
+            mOpenInfo.onOpened(cameraDegree, displayRotate, isFacingFront);
         } else {
             Log.e(TAG, "onStartPreview while mOpenInfo == null");
         }
